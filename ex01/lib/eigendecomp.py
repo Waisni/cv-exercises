@@ -1,6 +1,7 @@
 """Eigendecomposition functions."""
 
 import numpy as np
+from icecream import ic
 
 
 def get_matrix_from_eigdec(e: np.ndarray, V: np.ndarray) -> np.ndarray:
@@ -13,9 +14,7 @@ def get_matrix_from_eigdec(e: np.ndarray, V: np.ndarray) -> np.ndarray:
     Returns:
         The original matrix used for eigenvalue decomposition with shape (N, N)
     """
-    # START TODO #################
-    raise NotImplementedError
-    # END TODO ###################
+    return V.dot(np.diag(e)).dot(V.transpose())
 
 
 def get_euclidean_norm(v: np.ndarray) -> np.ndarray:
@@ -27,10 +26,7 @@ def get_euclidean_norm(v: np.ndarray) -> np.ndarray:
     Returns:
         The euclidean norm of the vector.
     """
-    # START TODO #################
-    # Do not use np.linalg.norm
-    raise NotImplementedError
-    # END TODO ###################
+    return np.sqrt(np.sum(np.square(v)))
 
 
 def get_dot_product(v1: np.ndarray, v2: np.ndarray) -> float:
@@ -46,9 +42,7 @@ def get_dot_product(v1: np.ndarray, v2: np.ndarray) -> float:
     assert (
         len(v1.shape) == len(v2.shape) == 1 and v1.shape == v2.shape
     ), f"Input vectors must be 1-dimensional and have the same shape, but have shapes {v1.shape} and {v2.shape}"
-    # START TODO #################
-    raise NotImplementedError
-    # END TODO ###################
+    return v1.dot(v2)
 
 
 def get_inverse(e: np.ndarray, V: np.ndarray) -> np.ndarray:
@@ -61,7 +55,4 @@ def get_inverse(e: np.ndarray, V: np.ndarray) -> np.ndarray:
     Returns:
         The inverse of A (i.e. the matrix with given eigenvalues/vectors) with shape (N, N).
     """
-    # START TODO #################
-    # Do not use np.linalg.inv
-    raise NotImplementedError
-    # END TODO ###################
+    return V.dot(np.diag(1 / e)).dot(V.transpose())
