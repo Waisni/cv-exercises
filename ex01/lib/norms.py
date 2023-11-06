@@ -3,6 +3,7 @@
 from typing import Tuple
 
 import numpy as np
+from icecream import ic
 
 
 def get_norm(
@@ -32,9 +33,6 @@ def get_norm(
     # X: grid of x-axis values with shape (num_points, num_points)
     # Y: grid of y-axis values with shape (num_points, num_points)
 
-    # START TODO #################
-    # stack the two inputs at the last axis, then compute the norm over that last axis.
-    raise NotImplementedError
-    # END TODO ###################
+    Z = np.linalg.norm(np.stack([X, Y], axis=2), ord=p, axis=2)
 
     return X, Y, Z
