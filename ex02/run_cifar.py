@@ -1,6 +1,8 @@
+
 """Simple example script."""
 
 import argparse
+import time
 
 import torch as th
 from torch import nn, optim
@@ -50,12 +52,9 @@ def main():
 
     if args.load_model != "":
         print(f"Load model weights from {args.load_model}")
-        # START TODO #################
         # load model weights from the file given by args.load_model and apply them to the model
-        # weights = th.load ...
-        # model.load_state_dict ...
-        raise NotImplementedError
-        # END TODO ###################
+        weights = th.load(args.load_model)
+        model.load_state_dict(weights)
 
     # move the model to our device
     model = model.to(device)
@@ -69,24 +68,17 @@ def main():
         return
 
     # Create the loss function (nn.CrossEntropyLoss)
-    # START TODO #################
-    # loss_fn = ...
-    raise NotImplementedError
-    # END TODO ###################
+    loss_fn = nn.CrossEntropyLoss()
 
     # create optimizer given the string in args.optimizer
     if args.optimizer == "sgd":
-        # START TODO #################
         # create stochastic gradient descent optimizer (optim.SGD) given model.parameters() and args.learning_rate
-        # optimizer = ...
-        raise NotImplementedError
-        # END TODO ###################
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+        
     elif args.optimizer == "adamw":
-        # START TODO #################
         # create AdamW optimizer (optim.AdamW) given model.parameters() and args.learning_rate
-        # optimizer = ...
-        raise NotImplementedError
-        # END TODO ###################
+        optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
+        
     else:
         raise ValueError(f"Undefined optimizer: {args.optimizer}")
 
@@ -108,15 +100,17 @@ def main():
                 data = data.to(device)
                 label = label.to(device)
 
-                # START TODO #################
                 # training process is as follows:
                 # 1) use optimizer.zero_grad() to zero the gradients in the optimizer
+                optimizer.zero_grad()
                 # 2) compute the output of the model given the data by using model(input)
+                model_output = model(data)
                 # 3) compute the loss between the output and the label by using loss_fn(output, label)
+                loss = loss_fn(model_output, label)
                 # 4) use loss.backward() to accumulate the gradients
+                loss.backward()
                 # 5) use optimizer.step() to update the weights
-                raise NotImplementedError
-                # END TODO ###################
+                optimizer.step()
 
                 # log the loss
                 if batch_idx % 100 == 0:
@@ -135,18 +129,19 @@ def main():
                 data = data.to(device)
                 label = label.to(device)
 
-                # START TODO #################
                 # 1) compute the output of the model given the data
+                model_output = model(data)
                 # 2) compute the loss between the output and the label
+                loss = loss_fn(model_output, label)
                 # 3) predictions are given as logits, i.e. pre-softmax class probabilities.
                 #     use th.argmax over axis 1 of the logits to get the predictions
+                predictions = th.argmax(model_output, dim=1)
                 # 4) compute the accuracy by comparing the predictions with the labels
                 #   - use predictions == labels to get the correctness for each prediction
                 #   - use th.sum to get the total number of correct predictions
                 #   - divide by the batchsize to get the accuracy
-                raise NotImplementedError
-                # END TODO ###################
-
+                acc = th.sum(predictions == label) / len(label)
+                
                 total_loss += loss.item()
                 total_acc += acc.item()
 
@@ -165,11 +160,12 @@ def main():
     model_file = (f"model_e{args.num_epochs}_{args.optimizer}_f{args.num_filters}_"
                   f"lr{args.learning_rate:.1e}.pth")
     print(f"Saving model to {model_file}")
-    # START TODO #################
     # save the model to disk by using th.save with parameters model.state_dict() and model_file
-    raise NotImplementedError
-    # END TODO ###################
+    th.save(model.state_dict(), model_file)
 
 
 if __name__ == '__main__':
+    start_time = time.time()
     main()
+    end_time = time.time()
+    print(f"Execution time of main function: {end_time - start_time} seconds")
