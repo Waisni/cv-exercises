@@ -20,19 +20,24 @@ def get_transforms(args):
                 [torchvision.transforms.ToTensor(),
                  torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     elif args.transforms == 'own':
-        # START TODO #################
         # use torchvision.transforms.Compose to compose our custom augmentations
         # horizontal_flip, random_resize_crop, ToTensor, Normalize
         # you can play around with the parameters
-        # train_transforms=
-        raise NotImplementedError
-        # END TODO #################
+        train_transforms= torchvision.transforms.Compose(
+            [torchvision.transforms.ToTensor(),
+             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+             horizontal_flip(0.5),
+             random_resize_crop(32, (1.0, 6.0))]
+            )
     elif args.transforms == 'torchvision':
-        # START TODO #################
         # achieve the same as above with torchvision transforms
         # compare your own implementation against theirs
-        raise NotImplementedError
-        # END TODO #################
+        train_transforms= torchvision.transforms.Compose(
+            [torchvision.transforms.ToTensor(),
+             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+             torchvision.transforms.RandomHorizontalFlip(0.5),
+             torchvision.transforms.RandomResizedCrop(32, scale=(0.8, 1.0))]
+            )
     else:
         raise ValueError(f"Unknown transform {args.transforms}")
 
@@ -143,17 +148,12 @@ def main():
                         help='path to cifar')
     args = parser.parse_args()
 
-    # START TODO #################
+    
     # initialize the SummaryWriter with a log directory in args.out_dir/logs
-    # tb_writer = 
-    raise NotImplementedError
-    # END TODO #################
+    tb_writer = SummaryWriter(os.path.join(args.out_dir, "logs"))
 
-    # START TODO #################
     # get the transforms and pass them to the dataset
-    # train_transforms, val_transforms = ...
-    raise NotImplementedError
-    # END TODO #################
+    train_transforms, val_transforms = get_transforms(args)
 
     # create dataloaders
     train_loader, val_loader, test_loader = get_dataloaders(args, train_transforms, val_transforms)
@@ -217,22 +217,28 @@ def main():
     epoch = -1
     for epoch in range(max_epochs):
         if do_train:
+            model.train()
             train_loss, train_acc = train_one_epoch(model, train_loader, epoch, loss_fn, optimizer,
                                                     args, device)
-            # START TODO ###################
+            
             # add_scalar train_loss and train_acc to tb_writer
-            raise NotImplementedError
-            # END TODO ###################
+            tb_writer.add_scalar("train_loss", train_loss, epoch)
+            tb_writer.add_scalar("train_acc", train_acc, epoch)
+            print(f"Training of epoch {epoch + 1} complete. "
+                    f"Loss {train_loss:.6f} accuracy {train_acc:.2%}")
+            
 
         # iterate over the val set to compute the accuracy
-        val_loss, val_acc = evaluate_one_epoch(model, val_loader, epoch, device, loss_fn, args)
-        print(f"Validation of epoch {epoch + 1} complete. "
-              f"Loss {val_loss:.6f} accuracy {val_acc:.2%}")
-        # START TODO #################
-        # add_scalar val_loss and val_acc to tb_writer
-        raise NotImplementedError
-        # END TODO ###################
-        print(f"---------- End of epoch {epoch + 1}")
+        model.eval()
+        with torch.no_grad():
+            val_loss, val_acc = evaluate_one_epoch(model, val_loader, epoch, device, loss_fn, args)
+            print(f"Validation of epoch {epoch + 1} complete. "
+                f"Loss {val_loss:.6f} accuracy {val_acc:.2%}")
+        
+            # add_scalar val_loss and val_acc to tb_writer
+            tb_writer.add_scalar("val_loss", val_loss, epoch)
+            tb_writer.add_scalar("val_acc", val_acc, epoch)
+            print(f"---------- End of epoch {epoch + 1}")
 
     model_file = (f"model_e{args.num_epochs}_{args.optimizer}_f{args.num_filters}_"
                   f"lr{args.learning_rate:.1e}.pth")
@@ -242,32 +248,28 @@ def main():
     th.save(model.state_dict(), model_file)
 
     # test the model that has been trained
-    test_loss, test_acc = evaluate_one_epoch(model, test_loader, epoch, device, loss_fn, args)
-    print(f"Test complete. Loss: {test_loss:.6f} accuracy {test_acc:.2%}")
-    # START TODO #################
-    # add_scalar test_loss and test_acc to tb_writer
-    # ideally, you'd remember the model with the best validation performance and test on that
-    raise NotImplementedError
-    # END TODO ###################
+    model.eval()
+    with torch.no_grad():
+        test_loss, test_acc = evaluate_one_epoch(model, test_loader, epoch, device, loss_fn, args)
+        print(f"Test complete. Loss: {test_loss:.6f} accuracy {test_acc:.2%}")
+        # add_scalar test_loss and test_acc to tb_writer
+        tb_writer.add_scalar("test_loss", test_loss, epoch)
+        tb_writer.add_scalar("test_acc", test_acc, epoch)
+    
+    tb_writer.close()
+    
 
 
 if __name__ == '__main__':
     main()
-    # START TODO ###################
-    # implement all TODO's in the script above
     # train the network for 256 epochs
     # use the flag --transforms basic, and specify out_dir as 'no_augment'
     # --- do not put code here ---
-    raise NotImplementedError
-    # END TODO ###################
 
-    # START TODO ###################
+
     # train the network a second time with the flag --transforms own and the out_dir 'augment'
     # --- do not put code here ---
-    raise NotImplementedError
-    # END TODO ###################
 
-    # START TODO ###################
     # visualize the logs with tensorboard
     # do the following for the two networks that we have trained above:
     # (1) run the tensorboard from a commandline from the login (login.informatik.uni-freiburg.de)
@@ -283,5 +285,3 @@ if __name__ == '__main__':
     # (3) compare the training and validation curves of 'no_augment' and 'augment'
     #   see also the test performance
     # --- do not put code here ---
-    raise NotImplementedError
-    # END TODO ###################
