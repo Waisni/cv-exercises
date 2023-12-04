@@ -97,3 +97,9 @@ dmypy.json
 # Visual Studio Code files
 .vscode/
 Computer Vision.code-workspace
+
+# Logs
+**/logs/
+
+# data
+**/data/
