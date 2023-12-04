@@ -208,13 +208,42 @@ def validate_all_c(
 
 
 def update_bn_params(model, val_loader, device, num_bn_updates):
-    # START TODO #################
     # 1. access the dataset as val_loader.dataset and create a new dataloader
     # 2. create a copy of the model
     # 3. set the entire model to evaluation mode, except set the batchnorm modules to train mode
     # 4. run forward passes to update batchnorm statistics
-    raise NotImplementedError
-    # END TODO ##################
+
+    # Access the dataset and create a new dataloader
+    val_loader = torch.utils.data.DataLoader(
+        val_loader.dataset,
+        batch_size=val_loader.batch_size,
+        shuffle=True,
+        num_workers=val_loader.num_workers,
+    )
+
+    # Copy the model
+    model_copy = copy.deepcopy(model)
+
+    # Set the model to evaluation mode
+    model_copy.eval()
+    model_copy.to(device)
+
+    # Set the batchnorm modules to train mode
+    for module in model_copy.modules():
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            module.train()
+            
+    print("Updating BN params (num updates:{})".format(num_bn_updates))
+
+    # Run forward passes to update batchnorm statistics
+    with torch.no_grad():
+        for i, (images, label) in enumerate(val_loader):
+            if i >= num_bn_updates:
+                break
+            images = images.to(device, non_blocking=True)
+            _output = model(images)
+    print("Done.")
+
     return model
 
 
