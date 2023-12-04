@@ -7,3 +7,7 @@ scikit-learn>=0.23
 notebook>=7
 pillow>=10
 chardet
+opencv-python
+pytoml
+imageio
+pandas
