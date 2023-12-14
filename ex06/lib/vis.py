@@ -6,14 +6,14 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 _DEFAULT_FONT_SIZE = 10
-_DEFAULT_FONT_PATH = '/tmp/OpenSans-Regular.ttf'
+_DEFAULT_FONT_PATH = 'OpenSans-Regular.ttf'
 _DEFAULT_FONTS = {_DEFAULT_FONT_SIZE: ImageFont.truetype(
         _DEFAULT_FONT_PATH, _DEFAULT_FONT_SIZE) if os.path.isfile(
         _DEFAULT_FONT_PATH) else None}
 _DEFAULT_BBOX_COLOR = (238, 232, 213)
 _DEFAULT_BBOX_STROKE = None
 _DEFAULT_TEXT_COLOR = (0, 43, 54)
-_DEFAULT_CMAP = 'jet'
+_DEFAULT_CMAP = 'turbo'
 _DEFAULT_MARKER_COLOR = (255, 0, 0)
 
 
@@ -490,7 +490,7 @@ def add_text_to_img(img, text,
     text_color = _DEFAULT_TEXT_COLOR if text_color is None else text_color
     font = _get_default_font(size=font_size) if font is None else font
     draw = ImageDraw.Draw(img)
-    text_size = draw.multiline_textsize(text=text, font=font)  # (width, height)
+    text_size = draw.multiline_textbbox(xy=[0,0], text=text, font=font)[-2:]  # (width, height)
 
     # shift xy pos according to xy_abs/rel_shifts:
     x_shift = (x_rel_shift * text_size[0] if x_rel_shift is not None else 0) + (
