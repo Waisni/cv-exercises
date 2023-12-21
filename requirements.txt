@@ -17,6 +17,4 @@ pytoml
 imageio
 pandas
 requests
-open3d
-
 
