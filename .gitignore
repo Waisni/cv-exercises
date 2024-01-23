@@ -2,6 +2,7 @@ output/
 cifar-10-batches-py/
 /poolscripts/_logs
 /poolscripts/_logs_pool
+marker/
 
 # large data files / model checkpoints
 *.pth
