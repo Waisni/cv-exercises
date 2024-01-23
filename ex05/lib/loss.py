@@ -10,7 +10,7 @@ class FlowLoss(nn.Module):
     def __init__(self, model):
         super().__init__()
         self.weight_decay = 1e-4
-        self.gt_interpolation = 'bilinear'
+        self.gt_interpolation = "bilinear"
 
         self.loss_weights = [1 / 16, 1 / 16, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1]
         self.loss_weights = [100 * weight for weight in self.loss_weights]
@@ -19,11 +19,19 @@ class FlowLoss(nn.Module):
     def get_regularization_parameters(self, model):
         reg_params = []
         for name, param in model.named_parameters():
-            if 'pred' not in name and not name.endswith('bias') and not name.endswith(
-                    'bn.weight') and param.requires_grad:
+            if (
+                "pred" not in name
+                and not name.endswith("bias")
+                and not name.endswith("bn.weight")
+                and param.requires_grad
+            ):
                 reg_params.append((name, param))
 
-        print("Applying regularization loss with weight decay {} on:".format(self.weight_decay))
+        print(
+            "Applying regularization loss with weight decay {} on:".format(
+                self.weight_decay
+            )
+        )
         for i, val in enumerate(reg_params):
             name, param = val
             print("\t#{} {}: {} ({})".format(i, name, param.shape, param.numel()))
@@ -35,8 +43,8 @@ class FlowLoss(nn.Module):
         pointwise_losses = {}
         sub_losses = {}
 
-        gt_flow = sample['gt_flow']
-        pred_flows_all = model_output['pred_flows_all']
+        gt_flow = sample["gt_flow"]
+        pred_flows_all = model_output["pred_flows_all"]
 
         total_aepe_loss = 0
         total_reg_loss = 0
@@ -44,15 +52,23 @@ class FlowLoss(nn.Module):
         for level, pred_flow in enumerate(pred_flows_all):
             with torch.no_grad():
                 gt_flow_resampled = F.interpolate(
-                        gt_flow, size=pred_flow.shape[-2:], mode=self.gt_interpolation,
-                        align_corners=(False if self.gt_interpolation != 'nearest' else None))
+                    gt_flow,
+                    size=pred_flow.shape[-2:],
+                    mode=self.gt_interpolation,
+                    align_corners=(
+                        False if self.gt_interpolation != "nearest" else None
+                    ),
+                )
 
-            aepe_loss = aepe(gt=gt_flow_resampled, pred=pred_flow, weight=self.loss_weights[level])
-            pointwise_epe_ = pointwise_epe(gt=gt_flow_resampled, pred=pred_flow,
-                                           weight=self.loss_weights[level])
+            aepe_loss = aepe(
+                gt=gt_flow_resampled, pred=pred_flow, weight=self.loss_weights[level]
+            )
+            pointwise_epe_ = pointwise_epe(
+                gt=gt_flow_resampled, pred=pred_flow, weight=self.loss_weights[level]
+            )
 
-            sub_losses['0_aepe/level_%d' % level] = aepe_loss
-            pointwise_losses['0_epe/level_%d' % level] = pointwise_epe_
+            sub_losses["0_aepe/level_%d" % level] = aepe_loss
+            pointwise_losses["0_epe/level_%d" % level] = pointwise_epe_
 
             total_aepe_loss += aepe_loss
 
@@ -64,20 +80,20 @@ class FlowLoss(nn.Module):
 
         total_loss = total_aepe_loss + total_reg_loss
 
-        sub_losses['1_total_aepe'] = total_aepe_loss
-        sub_losses['2_reg'] = total_reg_loss
+        sub_losses["1_total_aepe"] = total_aepe_loss
+        sub_losses["2_reg"] = total_reg_loss
 
         return total_loss, sub_losses, pointwise_losses
 
 
 class PhotometricLoss(nn.Module):
-    def __init__(self, model, use_smoothness_loss=True, smoothness_weight=1.):
+    def __init__(self, model, use_smoothness_loss=True, smoothness_weight=1.0):
         super().__init__()
 
         self.use_smoothness_loss = use_smoothness_loss
         self.smoothness_weight = smoothness_weight
         self.weight_decay = 1e-4
-        self.gt_interpolation = 'bilinear'
+        self.gt_interpolation = "bilinear"
 
         self.loss_weights = [1 / 16, 1 / 16, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1]
         self.loss_weights = [100 * weight for weight in self.loss_weights]
@@ -86,11 +102,19 @@ class PhotometricLoss(nn.Module):
     def get_regularization_parameters(self, model):
         reg_params = []
         for name, param in model.named_parameters():
-            if 'pred' not in name and not name.endswith('bias') and not name.endswith(
-                    'bn.weight') and param.requires_grad:
+            if (
+                "pred" not in name
+                and not name.endswith("bias")
+                and not name.endswith("bn.weight")
+                and param.requires_grad
+            ):
                 reg_params.append((name, param))
 
-        print("Applying regularization loss with weight decay {} on:".format(self.weight_decay))
+        print(
+            "Applying regularization loss with weight decay {} on:".format(
+                self.weight_decay
+            )
+        )
         for i, val in enumerate(reg_params):
             name, param = val
             print("\t#{} {}: {} ({})".format(i, name, param.shape, param.numel()))
@@ -103,30 +127,41 @@ class PhotometricLoss(nn.Module):
         sub_losses = {}
 
         # load the images without color augmentation
-        images = sample['images_spatial']
+        images = sample["images_spatial"]
         # load the predicted flows at different scales
-        pred_flows_all = model_output['pred_flows_all']
+        pred_flows_all = model_output["pred_flows_all"]
 
         total_photo_loss = 0
         total_smoothness_loss = 0
         total_reg_loss = 0
 
         for level, pred_flow in enumerate(pred_flows_all):
-            image_2_warped, warping_mask, pointwise_photo_loss, photo_loss = photometric_loss(
-                    image_1=images[0], image_2=images[1], pred_flow=pred_flow,
-                    weight=self.loss_weights[level])
-            sub_losses['0_photo/level_%d' % level] = photo_loss
-            pointwise_losses['0_image2_warped/level_%d' % level] = image_2_warped
-            pointwise_losses['1_warping_mask/level_%d' % level] = warping_mask
-            pointwise_losses['2_photo/level_%d' % level] = pointwise_photo_loss
+            (
+                image_2_warped,
+                warping_mask,
+                pointwise_photo_loss,
+                photo_loss,
+            ) = photometric_loss(
+                image_1=images[0],
+                image_2=images[1],
+                pred_flow=pred_flow,
+                weight=self.loss_weights[level],
+            )
+            sub_losses["0_photo/level_%d" % level] = photo_loss
+            pointwise_losses["0_image2_warped/level_%d" % level] = image_2_warped
+            pointwise_losses["1_warping_mask/level_%d" % level] = warping_mask
+            pointwise_losses["2_photo/level_%d" % level] = pointwise_photo_loss
             total_photo_loss += photo_loss
 
             if self.use_smoothness_loss:
-                pointwise_smoothness_loss, smoothness_loss_ =\
-                    smoothness_loss(pred_flow=pred_flow,
-                                    weight=self.loss_weights[level] * self.smoothness_weight)
-                sub_losses['1_smoothness/level_%d' % level] = smoothness_loss_
-                pointwise_losses['3_smoothness/level_%d' % level] = pointwise_smoothness_loss
+                pointwise_smoothness_loss, smoothness_loss_ = smoothness_loss(
+                    pred_flow=pred_flow,
+                    weight=self.loss_weights[level] * self.smoothness_weight,
+                )
+                sub_losses["1_smoothness/level_%d" % level] = smoothness_loss_
+                pointwise_losses[
+                    "3_smoothness/level_%d" % level
+                ] = pointwise_smoothness_loss
                 total_smoothness_loss += smoothness_loss_
 
         for name, param in self.reg_params:
@@ -137,16 +172,16 @@ class PhotometricLoss(nn.Module):
 
         total_loss = total_photo_loss + total_reg_loss + total_smoothness_loss
 
-        sub_losses['2_total_photo'] = total_photo_loss
-        sub_losses['3_total_smoothness'] = total_smoothness_loss
-        sub_losses['2_reg'] = total_reg_loss
+        sub_losses["2_total_photo"] = total_photo_loss
+        sub_losses["3_total_smoothness"] = total_smoothness_loss
+        sub_losses["2_reg"] = total_reg_loss
 
         return total_loss, sub_losses, pointwise_losses
 
 
 def charbonnier_loss(e, alpha=0.5, eps=1e-3):
     """Computes the charbonnier loss (e**2 + eps**2)**alpha."""
-    return (e ** 2 + eps ** 2) ** alpha
+    return (e**2 + eps**2) ** alpha
 
 
 def photometric_loss(image_1, image_2, pred_flow, weight=None, alpha=0.5, eps=1e-3):
@@ -174,7 +209,6 @@ def photometric_loss(image_1, image_2, pred_flow, weight=None, alpha=0.5, eps=1e
             pointwise_photo_loss: Photometric loss per pixel with shape (N,1,H,W)
             photo_loss: Photometric loss averaged over all valid pixels (scalar).
     """
-    # START TODO #################
     # Outline:
     # 1. Scale predicted flow to shape of image_1 using F.interpolate.
     # 2. Warp image_2 with the pred_flow using the provided "warp" function.
@@ -183,8 +217,26 @@ def photometric_loss(image_1, image_2, pred_flow, weight=None, alpha=0.5, eps=1e
     # Weight per-pixel error with the given weight if it is not None.
     # 4. Average the photometric error over all pixels where the warping was valid
     # (using the obtained warping mask).
-    raise NotImplementedError
-    # END TODO ###################
+
+    # 1. Scale predicted flow to shape of image_1 using F.interpolate.
+    pred_flow = F.interpolate(
+        pred_flow, size=image_1.shape[-2:], mode="bilinear", align_corners=False
+    )
+    # 2. Warp image_2 with the pred_flow using the provided "warp" function.
+    image_2_warped, warping_mask = warp(image_2, pred_flow)
+    # 3. Compute the per-pixel photometric error using the Charbonnier function.
+    pointwise_photo_loss = charbonnier_loss(
+        image_1 - image_2_warped, alpha=alpha, eps=eps
+    )
+    # Mask where warping was invalid given the mask returned by "warp".
+    pointwise_photo_loss = pointwise_photo_loss * warping_mask
+    # Weight per-pixel error with the given weight if it is not None.
+    if weight is not None:
+        pointwise_photo_loss = pointwise_photo_loss * weight
+    # 4. Average the photometric error over all pixels where the warping was valid
+    # (using the obtained warping mask).
+    photo_loss = pointwise_photo_loss.sum() / warping_mask.sum()
+    return image_2_warped, warping_mask, pointwise_photo_loss, photo_loss
 
 
 def smoothness_loss(pred_flow, weight=None, alpha=0.3, eps=1e-3):
@@ -201,7 +253,6 @@ def smoothness_loss(pred_flow, weight=None, alpha=0.3, eps=1e-3):
             pointwise_smoothness_loss: Smoothness loss per pixel with shape (N,1,H,W)
             smoothness_loss: Smoothness loss averaged over all valid pixels (scalar).
     """
-    # START TODO #################
     # 1. Compute difference of neighbouring (to the right and to below) flow values.
     # Hint: This can be done efficiently with the provided "shift_multi" function.
     # 2. Compute the pointwise smoothness loss by penalizing neighbouring flow
@@ -210,5 +261,33 @@ def smoothness_loss(pred_flow, weight=None, alpha=0.3, eps=1e-3):
     # mask returned by "shift_multi".
     # Weight per-pixel loss with the given weight if it is not None
     # 3. Average the smoothness loss over all pixels where the neighbours were valid.
-    raise NotImplementedError
-    # END TODO ###################
+
+    # 1. Compute difference of neighbouring (to the right and to below) flow values.
+    shifted_flow, shifted_mask = shift_multi(pred_flow, torch.tensor([(0,1), (1,0)]))
+    pred_flow_right, pred_flow_mask_right = shifted_flow[:,0,:,:,:], shifted_mask[:,0,:,:]
+    pred_flow_below, pred_flow_mask_below = shifted_flow[:,1,:,:,:], shifted_mask[:,1,:,:]
+    
+    flow_diff_right = pred_flow - pred_flow_right
+    flow_diff_below = pred_flow - pred_flow_below
+    # 2. Compute the pointwise smoothness loss by penalizing neighbouring flow
+    # differences with the Charbonnier function
+    # and summing up the penalties. Mask invalid (out-of-image) neighbours given the
+    # mask returned by "shift_multi".
+    masked_flow_diff_right = torch.einsum('bijk,bjk->bijk', flow_diff_right, pred_flow_mask_right)
+    masked_flow_diff_below = torch.einsum('bijk,bjk->bijk', flow_diff_below, pred_flow_mask_below)
+    
+    pointwise_smoothness_loss = (
+        charbonnier_loss(masked_flow_diff_right, alpha=alpha, eps=eps)
+    )
+    pointwise_smoothness_loss += (
+        charbonnier_loss(masked_flow_diff_below, alpha=alpha, eps=eps) 
+    )
+
+    # Weight per-pixel loss with the given weight if it is not None
+    if weight is not None:
+        pointwise_smoothness_loss = pointwise_smoothness_loss * weight
+    # 3. Average the smoothness loss over all pixels where the neighbours were valid.
+    smoothness_loss = (
+        pointwise_smoothness_loss.sum() / (pointwise_smoothness_loss != 0).sum()
+    )
+    return pointwise_smoothness_loss, smoothness_loss
