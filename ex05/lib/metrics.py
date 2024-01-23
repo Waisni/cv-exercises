@@ -19,10 +19,10 @@ def aepe(gt, pred, weight=None):
     Returns:
         The Average Endpoint Error (EPE) between the ground truth and prediction.
     """
-    # START TODO #################
     # Hint: Check torch.linalg.norm() to compute the norm of a vector.
-    raise NotImplementedError
-    # END TODO ###################
+    aepe_out = torch.linalg.norm(gt - pred, dim=1).mean()
+    if weight is not None:
+        aepe_out = aepe_out * weight
     return aepe_out
 
 
@@ -42,9 +42,11 @@ def pointwise_epe(gt, pred, weight=None):
         The pointwise Endpoint Error (EPE) between the ground truth and
         the prediction, with shape (N,1,H,W).
     """
-    # START TODO #################
-    raise NotImplementedError
-    # END TODO ###################
+    # Hint: Check torch.linalg.norm() to compute the norm of a vector.
+    pointwise_epe_out = torch.linalg.norm(gt - pred, dim=1, keepdim=True)
+    if weight is not None:
+        pointwise_epe_out = pointwise_epe_out * weight
+    return pointwise_epe_out
 
 
 def compute_flow_metrics(sample, model_output):

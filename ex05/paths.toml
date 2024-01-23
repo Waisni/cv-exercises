@@ -7,8 +7,8 @@
         root = '/project/cv-ws2324/shared-data/FlyingThings3D/TEST'
 
 [Sintel]
-    lists = '/project/cv-ws2324/shared-data/Sintel/sample_lists'
-    root = '/project/cv-ws2324/shared-data/Sintel/data/training'
+    lists = 'C:\Git_Workspace\Computer_Vision_Fork\data\Sintel\sample_lists'
+    root = 'C:\Git_Workspace\Computer_Vision_Fork\data\Sintel\data\training'
 
 [FlyingChairs]
     lists = '/project/cv-ws2324/shared-data/FlyingChairs/sample_lists'
